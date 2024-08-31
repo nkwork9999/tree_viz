@@ -4,11 +4,7 @@
 //debug_assertions　デバックの時につく notでリリース状態の時に真になる　cargo build --release
 //windows_subsystem　ウインドウが出るのを防ぐ
 mod commands;
-mod treepath;
-mod simpletree;
-use treepath::{build_tree,tree1};
 use commands::{simple_command,tree,open_directory};
-use simpletree::{tree2};
 use tauri::Builder;
 fn main(){
     tauri::Builder::default()

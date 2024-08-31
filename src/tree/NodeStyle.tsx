@@ -1,7 +1,7 @@
 import { Handle, Position } from "reactflow";
 
 //
-const NodeStyle = ({ data, style, onExpandComplete }: any) => {
+const NodeStyle = ({ data }: any) => {
   // const handleSliderChange = (event: any, newValue: number) => {
   //   setOpacity(newValue);
   // };

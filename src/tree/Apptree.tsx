@@ -1,11 +1,11 @@
 import { invoke } from "@tauri-apps/api/tauri";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ReactFlow, ReactFlowProvider, Node, Edge } from "reactflow";
 
 import "reactflow/dist/style.css";
 import NodeStyle from "./NodeStyle";
-import { Checkbox, FormControlLabel, Slider } from "@mui/material";
+import { Slider } from "@mui/material";
 
 const nodeType: any = {
   custom: NodeStyle,
@@ -95,8 +95,8 @@ export const Apptreeav = () => {
   const [monthsAgo, setMonthsAgo] = useState<number>(12);
   const [dirStructure, setDirStructure] = useState<DirNode | null>(null);
   const baseOpacity = 1;
-  const [highlightRecent, setHighlightRecent] = useState<boolean>(true);
-  const onNodeClick = (event: React.MouseEvent, node: Node) => {
+  const onNodeClick = (_event: React.MouseEvent, node: Node) => {
+    // const onNodeClick = (event: React.MouseEvent, node: Node) => {
     console.log("Node clicked:", node);
 
     const dirPath = node.data.path;
@@ -107,8 +107,12 @@ export const Apptreeav = () => {
       );
     }
   };
-  const handleMonthsAgoChange = (event: Event, newValue: number | number[]) => {
-    const months = Array.isArray(newValue) ? newValue[0] : newValue;
+  // const handleMonthsAgoChange = (event: Event, newValue: number | number[]) => {
+  const handleMonthsAgoChange = (
+    _event: Event,
+    newValue: number | number[]
+  ) => {
+    // const months = Array.isArray(newValue) ? newValue[0] : newValue;
     setMonthsAgo(newValue as number);
     updateNodesOpacity(newValue as number);
   };
@@ -199,10 +203,10 @@ export const Apptreeav = () => {
               max={12}
               step={2}
               onChange={handleMonthsAgoChange}
-              onChangeCommitted={(event, newValue) => {
-                // スライダーの操作が完了したときに確実に更新
-                handleMonthsAgoChange(event, newValue);
-              }}
+              // onChangeCommitted={(event, newValue) => {
+              //   // スライダーの操作が完了したときに確実に更新
+              //   handleMonthsAgoChange(event, newValue);
+              // }}
               valueLabelDisplay="auto"
               aria-labelledby="months-ago-slider"
             />
