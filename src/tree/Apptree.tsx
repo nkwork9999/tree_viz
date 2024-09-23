@@ -5,7 +5,6 @@ import { ReactFlow, ReactFlowProvider, Node, Edge } from "reactflow";
 
 import "reactflow/dist/style.css";
 import NodeStyle from "./NodeStyle";
-import { Slider } from "@mui/material";
 
 const nodeType: any = {
   custom: NodeStyle,
@@ -18,24 +17,12 @@ type DirNode = {
   children: DirNode[];
 };
 
-const ONE_MONTH_IN_MS = 30 * 24 * 60 * 60 * 1000;
-
 const getNodeOpacity = (
-  lastModified: number,
-  monthsAgo: number,
+  // lastModified: number,
+  // monthsAgo: number,
   baseOpacity: number
 ) => {
-  const now = Date.now();
-  const diff = now - lastModified;
-  const monthsDiff = diff / ONE_MONTH_IN_MS;
-  console.log(
-    `Node: lastModified=${lastModified}, monthsDiff=${monthsDiff}, monthsAgo=${monthsAgo}`
-  );
-  if (monthsDiff > monthsAgo) {
-    return baseOpacity;
-  }
-  const opacity =
-    baseOpacity + (1 - baseOpacity) * (1 - monthsDiff / monthsAgo);
+  const opacity = baseOpacity;
   console.log(`Calculated opacity: ${opacity}`);
   return Math.max(baseOpacity, Math.min(1, opacity));
 };
@@ -46,14 +33,14 @@ const buildFlowData = (
   parentId: string | null = null,
   level = 0,
   side = 0,
-  monthsAgo: number,
+  // monthsAgo: number,
   baseOpacity: number
 ) => {
   let nodes: Node[] = [];
   let edges: Edge[] = [];
   //親ID があれば 親IDとくっつける　なしならそのまま
   const nodeId = parentId ? `${parentId}-${dirNode.name}` : dirNode.name;
-  const opacity = getNodeOpacity(dirNode.last_modified, monthsAgo, baseOpacity);
+  const opacity = getNodeOpacity(baseOpacity);
 
   //
   nodes.push({
@@ -78,7 +65,7 @@ const buildFlowData = (
       nodeId,
       level + 2,
       side + index + 1,
-      monthsAgo,
+      // monthsAgo,
       baseOpacity
     );
 
@@ -92,8 +79,8 @@ const buildFlowData = (
 export const Apptreeav = () => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [monthsAgo, setMonthsAgo] = useState<number>(12);
-  const [dirStructure, setDirStructure] = useState<DirNode | null>(null);
+  // const [monthsAgo, setMonthsAgo] = useState<number>(12);
+  // const [dirStructure, setDirStructure] = useState<DirNode | null>(null);
   const baseOpacity = 1;
   const onNodeClick = (_event: React.MouseEvent, node: Node) => {
     // const onNodeClick = (event: React.MouseEvent, node: Node) => {
@@ -109,34 +96,18 @@ export const Apptreeav = () => {
   };
   // const handleMonthsAgoChange = (event: Event, newValue: number | number[]) => {
 
-  const updateNodesOpacity = (months: number) => {
-    if (dirStructure) {
-      const { nodes: updatedNodes, edges: updatedEdges } = buildFlowData(
-        dirStructure,
-        null,
-        0,
-        0,
-        months,
-        baseOpacity
-      );
-      console.log("updated", updatedNodes);
-      setNodes(updatedNodes);
-      setEdges(updatedEdges);
-    }
-  };
-
   async function excuteCommands() {
     try {
       const response = await invoke<string>("tree");
       const parsedDirStructure: DirNode = JSON.parse(response);
-      setDirStructure(parsedDirStructure);
+      // setDirStructure(parsedDirStructure);
       // const dirStructure: DirNode = JSON.parse(response);
       const { nodes, edges } = buildFlowData(
         parsedDirStructure,
         null,
         0,
         0,
-        monthsAgo,
+        // monthsAgo,
         baseOpacity
       );
       setNodes(nodes);
