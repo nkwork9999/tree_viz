@@ -1,16 +1,19 @@
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
-
-import { ReactFlow, ReactFlowProvider, Node, Edge } from "reactflow";
-
+import ReactFlow, {
+  ReactFlowProvider,
+  Node,
+  Edge,
+  Background,
+  Controls,
+} from "reactflow";
 import "reactflow/dist/style.css";
 import NodeStyle from "./NodeStyle";
-import { Slider } from "@mui/material";
 
-const nodeType: any = {
+const nodeTypes = {
   custom: NodeStyle,
 };
-//再帰的
+
 type DirNode = {
   name: string;
   path: string;
@@ -28,19 +31,14 @@ const getNodeOpacity = (
   const now = Date.now();
   const diff = now - lastModified;
   const monthsDiff = diff / ONE_MONTH_IN_MS;
-  console.log(
-    `Node: lastModified=${lastModified}, monthsDiff=${monthsDiff}, monthsAgo=${monthsAgo}`
-  );
   if (monthsDiff > monthsAgo) {
     return baseOpacity;
   }
   const opacity =
     baseOpacity + (1 - baseOpacity) * (1 - monthsDiff / monthsAgo);
-  console.log(`Calculated opacity: ${opacity}`);
   return Math.max(baseOpacity, Math.min(1, opacity));
 };
 
-//最初はparentId はnull となる
 const buildFlowData = (
   dirNode: DirNode,
   parentId: string | null = null,
@@ -51,17 +49,14 @@ const buildFlowData = (
 ) => {
   let nodes: Node[] = [];
   let edges: Edge[] = [];
-  //親ID があれば 親IDとくっつける　なしならそのまま
   const nodeId = parentId ? `${parentId}-${dirNode.name}` : dirNode.name;
   const opacity = getNodeOpacity(dirNode.last_modified, monthsAgo, baseOpacity);
 
-  //
   nodes.push({
     id: nodeId,
     type: "custom",
-    position: { x: side * 150, y: level * 70 },
+    position: { x: side * 180, y: level * 100 },
     data: { label: dirNode.name, path: dirNode.path, opacity: opacity },
-    //  style: { opacity: opacity },
   });
 
   if (parentId) {
@@ -71,13 +66,13 @@ const buildFlowData = (
       target: nodeId,
     });
   }
-  //indexでnameごとにディレクトリごとにずらす
-  dirNode.children.forEach((child: any, index: any) => {
+
+  dirNode.children.forEach((child, index) => {
     const { nodes: childNodes, edges: childEdges } = buildFlowData(
       child,
       nodeId,
-      level + 2,
-      side + index + 1,
+      level + 1,
+      side + index,
       monthsAgo,
       baseOpacity
     );
@@ -94,20 +89,17 @@ export const Apptreeav = () => {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [monthsAgo, setMonthsAgo] = useState<number>(12);
   const [dirStructure, setDirStructure] = useState<DirNode | null>(null);
-  const baseOpacity = 1;
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const baseOpacity = 0.3;
+
   const onNodeClick = (_event: React.MouseEvent, node: Node) => {
-    // const onNodeClick = (event: React.MouseEvent, node: Node) => {
-    console.log("Node clicked:", node);
-
     const dirPath = node.data.path;
-
     if (dirPath) {
       invoke("open_directory", { path: dirPath }).catch((error) =>
-        console.error("faild", error)
+        console.error("Failed to open directory", error)
       );
     }
   };
-  // const handleMonthsAgoChange = (event: Event, newValue: number | number[]) => {
 
   const updateNodesOpacity = (months: number) => {
     if (dirStructure) {
@@ -119,18 +111,17 @@ export const Apptreeav = () => {
         months,
         baseOpacity
       );
-      console.log("updated", updatedNodes);
       setNodes(updatedNodes);
       setEdges(updatedEdges);
     }
   };
 
-  async function excuteCommands() {
+  const handleCommandExecution = async () => {
+    setIsLoading(true);
     try {
       const response = await invoke<string>("tree");
       const parsedDirStructure: DirNode = JSON.parse(response);
       setDirStructure(parsedDirStructure);
-      // const dirStructure: DirNode = JSON.parse(response);
       const { nodes, edges } = buildFlowData(
         parsedDirStructure,
         null,
@@ -143,24 +134,68 @@ export const Apptreeav = () => {
       setEdges(edges);
     } catch (error) {
       console.error("Error fetching directory structure:", error);
-      // ユーザーにエラーメッセージを表示するなどの処理
+      // Show error message to user
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
+
   useEffect(() => {
-    excuteCommands();
-  }, []);
+    if (dirStructure) {
+      updateNodesOpacity(monthsAgo);
+    }
+  }, [dirStructure, monthsAgo]);
+
+  const timeRanges = [
+    { label: "1M", value: 1 },
+    { label: "3M", value: 3 },
+    { label: "6M", value: 6 },
+    { label: "1Y", value: 12 },
+  ];
 
   return (
     <ReactFlowProvider>
-      <div style={{ position: "relative", width: "100vw", height: "100vh" }}>
-        <div style={{ width: "100vw", height: "100vh" }}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodeClick={onNodeClick}
-            nodeTypes={nodeType}
-          />
+      <div className="relative w-screen h-screen bg-gray-100">
+        <div className="absolute top-4 left-4 z-10 bg-white p-4 rounded-lg shadow-md">
+          <h2 className="text-lg font-semibold mb-2">Directory Visualizer</h2>
+          <button
+            onClick={handleCommandExecution}
+            className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors duration-200"
+            disabled={isLoading}
+          >
+            {isLoading ? "Loading..." : "Visualize Directory"}
+          </button>
+          <div className="mt-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">
+              Time Range:
+            </p>
+            <div className="flex space-x-2">
+              {timeRanges.map((range) => (
+                <button
+                  key={range.value}
+                  onClick={() => setMonthsAgo(range.value)}
+                  className={`py-1 px-3 rounded text-sm ${
+                    monthsAgo === range.value
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodeClick={onNodeClick}
+          nodeTypes={nodeTypes}
+          fitView
+        >
+          <Background />
+          <Controls />
+        </ReactFlow>
       </div>
     </ReactFlowProvider>
   );
